@@ -1,10 +1,23 @@
-use std::io::{self, BufRead};
+use std::{io::{self, BufRead},collections::HashSet};
 use rand::prelude::*;
+use rand_chacha::rand_core::CryptoRngCore;
 
 struct Charset {
     lowercase_alphabet: Vec<char>,
     uppercase_alphabet: Vec<char>,
     digits: Vec<u8>
+}
+
+#[derive(Debug, Eq, PartialEq, Hash, Clone)]
+enum CharTypes {
+    LowercaseLetters,
+    UppercaseLetters,
+    Digits
+}
+
+struct PasswordOptions {
+    char_types: HashSet<CharTypes>,
+    length: u32
 }
 
 fn main() {
@@ -16,8 +29,31 @@ fn main() {
         None => panic!("Invalid length given.")
     };
 
-    let mut password: String = String::new();
+    println!("Please choose the types of characters to use. Add all of the numbers together you want to use.");
+    println!("Lowercase letters = 1");
+    println!("Uppercase letters = 2");
+    println!("Digits = 4");
+    let char_types: HashSet<CharTypes> = match convert_to_number(get_input("Please input a number: ")) {
+        Some(1) => HashSet::from([CharTypes::LowercaseLetters]),
+        Some(2) => HashSet::from([CharTypes::UppercaseLetters]),
+        Some(3) => HashSet::from([CharTypes::LowercaseLetters, CharTypes::UppercaseLetters]),
+        Some(4) => HashSet::from([CharTypes::Digits]),
+        Some(5) => HashSet::from([CharTypes::LowercaseLetters, CharTypes::Digits]),
+        Some(6) => HashSet::from([CharTypes::UppercaseLetters, CharTypes::Digits]),
+        Some(7) => HashSet::from([CharTypes::LowercaseLetters, CharTypes::UppercaseLetters, CharTypes::Digits]),
+        Some(_) => panic!("Invalid charater type given."),
+        None => panic!("Invalid charater type given.")
+    };
 
+    let options: PasswordOptions = PasswordOptions { char_types: char_types, length: length };
+
+    let password = create_password(&options, &charset, &mut rng);
+
+    /* leaving this in because i enjoy the 
+    message of the unreachable! and have yet
+    to find a good place to use it somewhere else 
+    so ig its living in the comments
+    
     for _ in 0..length {
         match rng.gen_range(0..=2) {
             0 => password.push(*charset.lowercase_alphabet.choose(&mut rng).unwrap()),
@@ -28,7 +64,7 @@ fn main() {
             }
             _ => unreachable!("The range of 0..=2 will contain 0,1, or 2. If this executes, check the current state of mathematics and consider all that you've known to be invalid"),
         }
-    }
+    } */
 
     println!("{}", password);
 }
@@ -67,4 +103,22 @@ fn get_input(prompt: &'static str) -> String {
 
 fn convert_to_number(string: String) -> Option<u32> {
     string.parse().ok()
+}
+
+fn create_password<R: CryptoRngCore>(options: &PasswordOptions, charset: &Charset, rng: &mut R ) -> String {
+    let mut password: String = String::new();
+    for _ in 0..options.length {
+        let char_type = options.char_types.iter().cloned().collect::<Vec<_>>();
+        match char_type.choose(rng) {
+            Some(CharTypes::LowercaseLetters) => password.push(*charset.lowercase_alphabet.choose(rng).unwrap()),
+            Some(CharTypes::UppercaseLetters) => password.push(*charset.uppercase_alphabet.choose(rng).unwrap()),
+            Some(CharTypes::Digits) => {
+                let digit = *charset.digits.choose(rng).unwrap();
+                password.push(char::from_u32(digit.into()).unwrap())
+            }
+            None => (),
+        }
+    }
+
+    return password
 }
