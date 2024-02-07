@@ -2,6 +2,13 @@ use std::{io::{self, BufRead},collections::HashSet};
 use rand::prelude::*;
 use rand_chacha::rand_core::CryptoRngCore;
 
+macro_rules! user_error {
+    ($message:expr) => {
+        eprintln!("Error: {}", $message);
+        std::process::exit(1);
+    };
+}
+
 struct Charset {
     lowercase_alphabet: Vec<char>,
     uppercase_alphabet: Vec<char>,
@@ -26,7 +33,7 @@ fn main() {
 
     let length: u32 = match convert_to_number(get_input("Password length: ")) {
         Some(l) => l,
-        None => panic!("Invalid length given.")
+        None => {user_error!("Invalid length given.");},
     };
 
     println!("Please choose the types of characters to use. Add all of the numbers together you want to use.");
@@ -41,20 +48,20 @@ fn main() {
         Some(5) => HashSet::from([CharTypes::LowercaseLetters, CharTypes::Digits]),
         Some(6) => HashSet::from([CharTypes::UppercaseLetters, CharTypes::Digits]),
         Some(7) => HashSet::from([CharTypes::LowercaseLetters, CharTypes::UppercaseLetters, CharTypes::Digits]),
-        Some(_) => panic!("Invalid charater type given."),
-        None => panic!("Invalid charater type given.")
+        Some(_) => {user_error!("Invalid charater type given.");},
+        None => {user_error!("Invalid charater type given.");},
     };
 
     let amount: u32 = match convert_to_number(get_input("Amount of passwords to generate: ")) {
         Some(a) => a,
-        None => panic!("Invalid amount given.")
+        None => {user_error!("Invalid amount given.");},
     };
 
     let has_prefix: bool = match get_input("Should the passwords be prefixed with their index (e.g. 1: passwd)? [Y/n]: ").as_str() {
         "y" => true,
         "n" => false,
         "" => true,
-        _ => panic!("invalid input")
+        _ => {user_error!("invalid input");},
     };
 
     let options: PasswordOptions = PasswordOptions { char_types: char_types, length: length };
