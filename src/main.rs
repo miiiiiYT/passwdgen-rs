@@ -12,14 +12,16 @@ macro_rules! user_error {
 struct Charset {
     lowercase_alphabet: Vec<char>,
     uppercase_alphabet: Vec<char>,
-    digits: Vec<u8>
+    digits: Vec<u8>,
+    special: Vec<char>,
 }
 
 #[derive(Debug, Eq, PartialEq, Hash, Clone)]
 enum CharTypes {
     LowercaseLetters,
     UppercaseLetters,
-    Digits
+    Digits,
+    Special
 }
 
 struct PasswordOptions {
@@ -36,10 +38,11 @@ fn main() {
         None => {user_error!("Invalid length given.");},
     };
 
-    println!("Please choose the types of characters to use. Add all of the numbers together you want to use.");
+    /* println!("Please choose the types of characters to use. Add all of the numbers together you want to use.");
     println!("Lowercase letters = 1");
     println!("Uppercase letters = 2");
     println!("Digits = 4");
+    println!("Special chars = 8");
     let char_types: HashSet<CharTypes> = match convert_to_number(get_input("Please input a number: ")) {
         Some(1) => HashSet::from([CharTypes::LowercaseLetters]),
         Some(2) => HashSet::from([CharTypes::UppercaseLetters]),
@@ -48,12 +51,25 @@ fn main() {
         Some(5) => HashSet::from([CharTypes::LowercaseLetters, CharTypes::Digits]),
         Some(6) => HashSet::from([CharTypes::UppercaseLetters, CharTypes::Digits]),
         Some(7) => HashSet::from([CharTypes::LowercaseLetters, CharTypes::UppercaseLetters, CharTypes::Digits]),
+        Some(8) => HashSet::from([CharTypes::Special]),
+        Some(9) => HashSet::from([CharTypes::LowercaseLetters, CharTypes::Special]),
+        Some(10) => HashSet::from([CharTypes::UppercaseLetters, CharTypes::Special]),
+        Some(11) => HashSet::from([CharTypes::LowercaseLetters, CharTypes::UppercaseLetters, CharTypes::Special]),
+        Some(12) => HashSet::from([CharTypes::Special, CharTypes::Digits]),
+        Some(13) => HashSet::from([CharTypes::LowercaseLetters, CharTypes::Special, CharTypes::Digits]),
+        Some(14) => HashSet::from([CharTypes::Special, CharTypes::UppercaseLetters, CharTypes::Digits]),
+        Some(15) => HashSet::from([CharTypes::LowercaseLetters, CharTypes::UppercaseLetters, CharTypes::Digits, CharTypes::Special]),
         Some(_) => {user_error!("Invalid charater type given.");},
         None => {user_error!("Invalid charater type given.");},
+    }; */
+
+    let char_types: HashSet<CharTypes> = match get_char_types() {
+        Some(ct) => ct,
+        None => {user_error!("Invalid character type(s) specified");},
     };
 
     let amount: u32 = match convert_to_number(get_input("Amount of passwords to generate: ")) {
-        Some(a) => a,
+        Some(amt) => amt,
         None => {user_error!("Invalid amount given.");},
     };
 
@@ -112,7 +128,13 @@ fn generate_charset() -> Charset{
         .filter(|c| c.is_ascii_digit())
         .collect::<Vec<_>>();
 
-    Charset{lowercase_alphabet: lower_alphabet, uppercase_alphabet: upper_alphabet, digits: digits}   
+    let special: Vec<char> = (32..=126 as u8)
+        .map(|c| c as char)
+        .filter(|c| !c.is_ascii_alphanumeric())
+        .filter(|c| !c.is_ascii_control())
+        .collect::<Vec<_>>();
+
+    Charset{lowercase_alphabet: lower_alphabet, uppercase_alphabet: upper_alphabet, digits: digits, special: special}   
 }
 
 fn read_input() -> String {
@@ -143,9 +165,35 @@ fn create_password<R: CryptoRngCore>(options: &PasswordOptions, charset: &Charse
                 let digit = *charset.digits.choose(rng).unwrap();
                 password.push(char::from_u32(digit.into()).unwrap())
             }
+            Some(CharTypes::Special) => password.push(*charset.special.choose(rng).unwrap()),
             None => (),
         }
     }
 
     return password
+}
+
+fn get_char_types() -> Option<HashSet<CharTypes>> {
+    println!("Please choose the types of characters to use (comma-separated):");
+    println!("Options: lowercase, uppercase, digits, special");
+
+    let input_string = get_input("Please input your choices: ");
+    let choices: HashSet<&str> = input_string.split(',').map(|c| c.trim()).collect();
+
+    let char_types: HashSet<CharTypes> = choices
+        .into_iter()
+        .flat_map(|choice| match choice {
+            "lowercase" => Some(CharTypes::LowercaseLetters),
+            "uppercase" => Some(CharTypes::UppercaseLetters),
+            "digits" => Some(CharTypes::Digits),
+            "special" => Some(CharTypes::Special),
+            _ => None,
+        })
+        .collect();
+    
+    if char_types.is_empty() {
+        return None
+    }
+
+    Some(char_types)
 }
