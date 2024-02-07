@@ -45,9 +45,29 @@ fn main() {
         None => panic!("Invalid charater type given.")
     };
 
+    let amount: u32 = match convert_to_number(get_input("Amount of passwords to generate: ")) {
+        Some(a) => a,
+        None => panic!("Invalid amount given.")
+    };
+
+    let has_prefix: bool = match get_input("Should the passwords be prefixed with their index (e.g. 1: passwd)? [Y/n]: ").as_str() {
+        "y" => true,
+        "n" => false,
+        "" => true,
+        _ => panic!("invalid input")
+    };
+
     let options: PasswordOptions = PasswordOptions { char_types: char_types, length: length };
 
-    let password = create_password(&options, &charset, &mut rng);
+    for i in 1..=amount {
+        let password = create_password(&options, &charset, &mut rng);
+        if has_prefix {
+            println!("{}", i.to_string() + ": " + &password);
+        } else {
+            println!("{}", password);
+        }
+    }
+    
 
     /* leaving this in because i enjoy the 
     message of the unreachable! and have yet
@@ -66,7 +86,7 @@ fn main() {
         }
     } */
 
-    println!("{}", password);
+    
 }
 
 fn generate_charset() -> Charset{
