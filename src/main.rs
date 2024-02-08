@@ -1,6 +1,7 @@
 pub mod password;
 pub mod charset;
 pub mod util;
+pub mod file_export;
 
 use std::collections::HashSet;
 use rand::prelude::*;
@@ -8,6 +9,7 @@ use rand::prelude::*;
 use password::{PasswordOptions, create_password};
 use charset::{Charset, CharTypes};
 use util::{convert_to_number, get_input, Output};
+use file_export::{write, init_path};
 
 /// Print an error message to stderr and exit with a non-zero code.
 ///
@@ -81,7 +83,21 @@ fn main() {
             }
         },
         Output::File => {
-            unimplemented!("out to file");
+            println!("Writing to file.");
+            let input = &get_input("Please supply a file name: ");
+            let mut file = match init_path(input.as_str()) {
+                Ok(p) => {
+                    println!("Writing to {}", p.1);
+                    p
+                },
+                Err(e) => {user_error!(format!("An error occured opening the file: {}", e));}
+            };
+            let result = write(&passwords.join("\n"), &mut file.0);
+            if result.0 {
+                println!("Wrote to {}", file.1);
+            } else {
+                eprintln!("Writing to file failed: {}", result.1.unwrap())
+            }
         },
         Output::Commandline => {
             unimplemented!("used from commandline");
