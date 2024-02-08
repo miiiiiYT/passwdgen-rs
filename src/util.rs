@@ -1,5 +1,11 @@
 use std::io::{self, BufRead};
 
+pub enum Output {
+	Stdout,
+	Commandline,
+	File,
+}
+
 /// Reads a line of input from the user.
 ///
 /// # Returns

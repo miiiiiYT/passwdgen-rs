@@ -69,6 +69,24 @@ fn main() {
         }
     }
 
+    let output: Output = match get_output_type(false) {
+        Some(o) => o,
+        None => {user_error!("You did not provide a valid output type");},
+    };
+
+    match output {
+        Output::Stdout => {
+            for password in passwords {
+                println!("{}", password);
+            }
+        },
+        Output::File => {
+            unimplemented!("out to file");
+        },
+        Output::Commandline => {
+            unimplemented!("used from commandline");
+        }
+    }
 
     /* leaving this in because i enjoy the 
     message of the unreachable! and have yet
@@ -121,3 +139,16 @@ fn get_char_types() -> Option<HashSet<CharTypes>> {
 	Some(char_types)
 }
 
+fn get_output_type(cli: bool) -> Option<Output> {
+    if cli {
+        return Some(Output::Commandline)
+    }
+    println!("How do you want the passwords to be outputted?");
+    println!("Options: stdout, file");
+
+    match get_input("Please input one option: ").as_str() {
+        "stdout" => Some(Output::Stdout),
+        "file" => Some(Output::File),
+        _ => None
+    }
+}
