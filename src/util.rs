@@ -4,6 +4,11 @@ pub enum Output {
 	Stdout,
 	Commandline,
 	File,
+    None,
+}
+
+impl Output {
+    pub fn default() -> Self {Output::None}
 }
 
 /// Reads a line of input from the user.

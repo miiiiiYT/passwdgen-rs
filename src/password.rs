@@ -2,14 +2,20 @@ use std::collections::HashSet;
 use rand::prelude::*;
 use rand_chacha::rand_core::CryptoRngCore;
 
-use super::charset::{CharTypes, Charset};
+use crate::charset::{CharTypes, Charset};
 
 /// Represents the options for password generation.
 ///
 /// Users can specify the character types and length of the generated password.
 pub struct PasswordOptions {
     pub char_types: HashSet<CharTypes>,
-    pub length: u32
+    pub length: u32,
+    pub amount: u32,
+    pub has_prefix: bool,
+}
+
+impl PasswordOptions {
+    pub fn new() -> Self { Self { char_types: HashSet::<CharTypes>::new(), length: 0, amount: 0, has_prefix: false }}
 }
 
 // create a password

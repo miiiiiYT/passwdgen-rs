@@ -2,6 +2,7 @@ pub mod password;
 pub mod charset;
 pub mod util;
 pub mod file_export;
+pub mod cli;
 
 use std::{collections::HashSet, vec};
 use rand::prelude::*;
@@ -29,52 +30,75 @@ macro_rules! user_error {
     };
 }
 
+pub(crate) use user_error;
 
 fn main() {
     // initializing crypto-safe rng
     let mut rng: rand_chacha::ChaCha20Rng = rand_chacha::ChaCha20Rng::from_entropy();
     let charset: Charset = Charset::new();
 
-    let length: u32 = match convert_to_number(get_input("Password length: ")) {
-        Some(len) => len,
-        None => {user_error!("Invalid length given.");},
-    };
+    // allowing unused assignments, as they're necessary to introduce these variables to global scope before going into if/else flow control, which would break the scope
+    #[allow(unused_assignments)]
+    let mut options: PasswordOptions = PasswordOptions::new();
+    #[allow(unused_assignments)]
+    let mut output: Output = Output::default();
 
-    let char_types: HashSet<CharTypes> = match get_char_types() {
-        Some(ct) => ct,
-        None => {user_error!("Invalid character type(s) specified");},
-    };
+    if std::env::args().len() > 1 {
+        options = cli::cli_run();
+        output = match get_output_type(true) {
+            Some(o) => o,
+            None => unreachable!("get_output_type should always return something when cli == true")
+        };
+    } else {
+        let length: u32 = match convert_to_number(get_input("Password length: ")) {
+            Some(len) => len,
+            None => {user_error!("Invalid length given.");},
+        };
 
-    let amount: u32 = match convert_to_number(get_input("Amount of passwords to generate: ")) {
-        Some(amt) => amt,
-        None => {user_error!("Invalid amount given.");},
-    };
+        println!("Please choose the types of characters to use (comma-separated):");
+        println!("Options: lowercase, uppercase, digits, special, all");
+    
+        let input = get_input("Please input your choice(s): ");
+        let char_types: HashSet<CharTypes> = match get_char_types(input) {
+            Some(ct) => ct,
+            None => {user_error!("Invalid character type(s) specified");},
+        };
 
-    let has_prefix: bool = match get_input("Should the passwords be prefixed with their index (e.g. 1: passwd)? [Y/n]: ").as_str() {
-        "y" => true,
-        "n" => false,
-        "" => true, // just pressing enter will choose yes
-        _ => {user_error!("invalid input");},
-    };
+        let amount: u32 = match convert_to_number(get_input("Amount of passwords to generate: ")) {
+            Some(amt) => amt,
+            None => {user_error!("Invalid amount given.");},
+        };
 
-    let options: PasswordOptions = PasswordOptions { char_types: char_types, length: length };
+        let has_prefix: bool = match get_input("Should the passwords be prefixed with their index (e.g. 1: passwd)? [Y/n]: ").as_str() {
+            "y" => true,
+            "n" => false,
+            "" => true, // just pressing enter will choose yes
+            _ => {user_error!("invalid input");},
+        };
+
+        options = PasswordOptions { char_types: char_types, length: length, amount: amount, has_prefix: has_prefix};
+
+        output = match get_output_type(false) {
+            Some(o) => o,
+            None => {user_error!("You did not provide a valid output type");},
+        };
+    }
 
     // generating passwords
     let mut passwords: Vec<String> = Vec::new();
-    for i in 1..=amount {
+    for i in 1..=options.amount {
         let password = create_password(&options, &charset, &mut rng);
         // depending on has_prefix, print the prefix or drop it
-        if has_prefix {
+        if options.has_prefix {
             passwords.push(i.to_string() + ": " + &password);
         } else {
             passwords.push(password);
         }
     }
 
-    let output: Output = match get_output_type(false) {
-        Some(o) => o,
-        None => {user_error!("You did not provide a valid output type");},
-    };
+    if options.char_types.is_empty() {
+        panic!("some error occured (PasswordOptions not populated?)")
+    }
 
     match output {
         Output::Stdout => {
@@ -100,7 +124,10 @@ fn main() {
             }
         },
         Output::Commandline => {
-            unimplemented!("used from commandline");
+            println!("{}", passwords.join("\n"))
+        },
+        Output::None => {
+            eprintln!("Output is set to none, trashing the password(s) and exiting.");
         }
     }
 
@@ -129,12 +156,8 @@ fn main() {
 ///
 /// An `Option<HashSet<CharTypes>>` representing the selected character types.
 /// `None` if no valid character types are selected.
-fn get_char_types() -> Option<HashSet<CharTypes>> {
-	println!("Please choose the types of characters to use (comma-separated):");
-	println!("Options: lowercase, uppercase, digits, special, all");
-
-	let input_string = get_input("Please input your choice(s): ");
-	let choices: HashSet<&str> = input_string.split(',').map(|c| c.trim()).collect(); // splitting the input at commas
+pub fn get_char_types(input: String) -> Option<HashSet<CharTypes>> {
+	let choices: HashSet<&str> = input.split(',').map(|c| c.trim()).collect(); // splitting the input at commas
 
 	let char_types: HashSet<CharTypes> = choices
 		.into_iter()
