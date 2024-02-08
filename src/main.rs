@@ -3,7 +3,7 @@ pub mod charset;
 pub mod util;
 pub mod file_export;
 
-use std::collections::HashSet;
+use std::{collections::HashSet, vec};
 use rand::prelude::*;
 
 use password::{PasswordOptions, create_password};
@@ -131,21 +131,24 @@ fn main() {
 /// `None` if no valid character types are selected.
 fn get_char_types() -> Option<HashSet<CharTypes>> {
 	println!("Please choose the types of characters to use (comma-separated):");
-	println!("Options: lowercase, uppercase, digits, special");
+	println!("Options: lowercase, uppercase, digits, special, all");
 
-	let input_string = get_input("Please input your choices: ");
+	let input_string = get_input("Please input your choice(s): ");
 	let choices: HashSet<&str> = input_string.split(',').map(|c| c.trim()).collect(); // splitting the input at commas
 
 	let char_types: HashSet<CharTypes> = choices
 		.into_iter()
 		.flat_map(|choice| match choice { // inserting chartypes into the hashset 
-			"lowercase" => Some(CharTypes::LowercaseLetters),
-			"uppercase" => Some(CharTypes::UppercaseLetters),
-			"digits" => Some(CharTypes::Digits),
-			"special" => Some(CharTypes::Special),
-			_ => None,
+			"lowercase" => vec![CharTypes::LowercaseLetters],
+			"uppercase" => vec![CharTypes::UppercaseLetters],
+			"digits" => vec![CharTypes::Digits],
+			"special" => vec![CharTypes::Special],
+            "all" => vec![CharTypes::LowercaseLetters, CharTypes::UppercaseLetters, CharTypes::Digits, CharTypes::Special],
+			_ => vec![],
 		})
 		.collect();
+
+    //"all" => Some(CharTypes::LowercaseLetters, CharTypes::UppercaseLetters, CharTypes::Digits, CharTypes::Special),
 	
 	if char_types.is_empty() {
 		// if this is not here, the password will the "", so literally nothing. unwanted behavior
@@ -162,9 +165,10 @@ fn get_output_type(cli: bool) -> Option<Output> {
     println!("How do you want the passwords to be outputted?");
     println!("Options: stdout, file");
 
-    match get_input("Please input one option: ").as_str() {
+    match get_input("Please input one option (standard: stdout): ").as_str() {
         "stdout" => Some(Output::Stdout),
         "file" => Some(Output::File),
+        "" => Some(Output::Stdout),
         _ => None
     }
 }
