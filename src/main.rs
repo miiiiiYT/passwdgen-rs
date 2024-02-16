@@ -30,7 +30,15 @@ macro_rules! user_error {
     };
 }
 
+macro_rules! quit {
+    () => {
+        println!("\nGot EOF, quitting");
+        std::process::exit(0)
+    };
+}
+
 pub(crate) use user_error;
+pub(crate) use quit;
 
 fn main() {
     // initializing crypto-safe rng
