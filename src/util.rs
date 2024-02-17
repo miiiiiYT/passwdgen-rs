@@ -1,7 +1,5 @@
 use std::io::{self, BufRead};
 
-use crate::quit;
-
 pub enum Output {
 	Stdout,
 	Commandline,
@@ -48,12 +46,7 @@ pub fn get_input(prompt: &'static str) -> String {
     io::Write::flush(&mut io::stdout()).expect("flush failed!"); // TODO: implement panic safe flush
     let input = read_input();
     if input.is_some() {
-        let input_ = input.unwrap();
-        if input_.is_empty() {
-            quit!();
-        } else {
-            return input_
-        }
+        input.unwrap()
     } else {
         return String::new()
     }
